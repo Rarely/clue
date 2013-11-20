@@ -1,8 +1,6 @@
 % Clue Game %
 
 % TODO LIST %
-% The players turn loop %
-% The opponents turn %
 % The guess! %
 
 % First call to start the Clue Helper %
