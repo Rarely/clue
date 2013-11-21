@@ -2,12 +2,16 @@
 
 % TODO LIST %
 % The guess! %
+% If known, do not set possible %
+% When shown a card, remove it from possible and add to known %
+% Accuse when all but 1 of each card type is unknown %
 
 % First call to start the Clue Helper %
 clue :- init.
 
 % The dynamic lists the will be changing throughout the game %
 :- dynamic numPlayers/1.
+:- dynamic currentRoom/1.
 
 :- dynamic unknownWeapons/1.
 :- dynamic unknownCharacters/1.
@@ -66,18 +70,18 @@ set_players(NumPlayers) :- assert(numPlayers(NumPlayers)).
 
 
 % Get all the cards player is holder %
-get_cards :- write('Please state the cards you are holding. Example "candlestick.", if you have entered all cards type "done." \n' ),
+get_cards :- write('Please state the cards you are holding.\n Example "candlestick.", if you have entered all cards type "done." \n' ),
 			 read(Card),
 			 set_card(Card).
 
-% Find which player's turn it is and 
+% Find which players turn it is and 
 % prompt the user accordingly.
 find_turn :- write('Is it our turn?\n(y/n)'),
              read(OurTurn),
              is_our_turn(OurTurn).
 
 is_our_turn(y) :- my_turn.
-is_our_turn(n) :- write('Which player\'s turn, from your left, is it? (0..MaxPlayer)\n'),
+is_our_turn(n) :- write('Which player\'s turn, from your left, is it?\n(0..Number of Players - 1)\n'),
                   read(OpponentsTurn),
                   opponents_turn(OpponentsTurn).
              
@@ -105,14 +109,45 @@ set_character(Card) :- assert(knownCharacters(Card)),
 set_room(Card) :- assert(knownRooms(Card)),
 				  retract(unknownRooms(Card)).
 
+
+
 set_possible(Card) :- weapon(Card),
-				      assert(possibleWeapons(Card)).
+					  set_possible_weapon(Card).
 
 set_possible(Card) :- character(Card),
-				      assert(possibleCharacters(Card)).
+				      set_possible_character(Card).
 
 set_possible(Card) :- room(Card),
-				      assert(possibleRooms(Card)).
+				      set_possible_room(Card).
+
+%----- Set Possible Characters -----%
+set_possible_character(Card) :- possibleCharacters(Card,X),
+							    Y is X + 1,
+							    retractall(possibleCharacters(Card,_)),
+							    assert(possibleCharacters(Card, Y)).
+
+set_possible_character(Card) :- not(possibleCharacters(Card,_)), 
+							    assert(possibleCharacters(Card, 0)).
+
+
+%----- Set Possible Rooms -----%
+set_possible_room(Card) :- not(possibleRooms(Card,_)), 
+						   assert(possibleRooms(Card, 1)).
+
+set_possible_room(Card) :- possibleRooms(Card,X),
+						   Y is X + 1,
+						   retractall(possibleRooms(Card,_)),
+						   assert(possibleRooms(Card, Y)).
+
+%----- Set Possible Weapons -----%
+set_possible_weapon(Card) :- not(possibleWeapons(Card,_)), 
+							 assert(possibleWeapons(Card, 1)).
+
+set_possible_weapon(Card) :- possibleWeapons(Card,X),
+							 Y is X + 1,
+							 retractall(possibleWeapons(Card,_)),
+							 assert(possibleWeapons(Card, Y)).
+
 
 %------ Initalize all cards to unknown ------%
 init_game_state :- init_characters, 
@@ -153,10 +188,9 @@ clear_game_state :- retractall(numPlayers(_)),
 					retractall(knownWeapons(_)),
 					retractall(knownCharacters(_)),
 					retractall(knownRooms(_)),
-					retractall(possibleWeapons(_)),
-					retractall(possibleCharacters(_)),
-					retractall(possibleRooms(_)).
-
+					retractall(possibleWeapons(_,_)),
+					retractall(possibleCharacters(_,_)),
+					retractall(possibleRooms(_,_)).
 
 %------ Our turn ------%
 my_turn :- write('Are you in a room?\n(y/n)'),
@@ -180,7 +214,12 @@ closest_room_interface :- write('What is the closest room?\n'),
                         closest_room_handler(ClosestRoom).
 
 closest_room_handler(ClosestRoom) :- knownRooms(ClosestRoom), !, loop_next_closest_room_interface.
-closest_room_handler(ClosestRoom) :- unknownRooms(ClosestRoom), !, go_to_room_interface.
+
+closest_room_handler(ClosestRoom) :- unknownRooms(ClosestRoom), !, 
+									 retractall(currentRoom(_)),
+									 assert(currentRoom(ClosestRoom)),
+									 go_to_room_interface.
+
 
 loop_next_closest_room_interface :- write('We\'ve already seen this room too...\n
 	                                         What is the next closest room?\n'),
@@ -194,7 +233,7 @@ go_to_room_interface :- write('Go there... did you make it?\n(y/n)'),
 go_to_room_handler(n) :- end_turn_interface.
 go_to_room_handler(y) :- suspect_this.
 
-suspect_this :- write('TODO: Implement suspecting logic. (GUESS THIS:___)\n'),
+suspect_this :- the_guess,
                 did_you_win_interface.
 
 did_you_win_interface :- write('Did you win?\n(y/n)'),
@@ -217,6 +256,29 @@ end_turn_interface :- write('Our turn is over; opponents\' turn now...\n'), oppo
 exit_room_interface :- write('Exit the room, but stay close!\n'),
                        end_turn_interface.
 
+%------ The Guess ------%
+the_guess :- guess_character(X),
+			 guess_room(Y),
+			 guess_weapon(Z),
+			 write('Guess the following: \n'),
+			 print_guesses(X,Y,Z).
+
+print_guesses(X,Y,Z) :- write('Character: '), write(X), write('\n'),
+					    write('Room: '), write(Y), write('\n'),
+					    write('Weapon: '), write(Z), write('\n').
+
+guess_room(Room) :- currentRoom(Room).
+
+guess_character(Char) :- findall(X, possibleCharacters(_,X),L),
+						 max(L,Max),
+						 possibleCharacters(Char,Max).
+
+guess_weapon(Weapon) :- findall(X, possibleWeapons(_,X),L),
+						 max(L,Max),
+						 possibleWeapons(Weapon,Max).
+max([X],X).
+max([X|Xs],X):- max(Xs,Y), X >=Y.
+max([X|Xs],N):- max(Xs,N), N > X.
 
 %------ Opponents turns ------%
 opponents_turn :- opponents_turn(0).
@@ -224,6 +286,7 @@ opponents_turn :- opponents_turn(0).
 opponents_turn(X) :- numPlayers(X), % Its now your turn again %
 					 write('\nIt is now your turn to play again!\n'),
 					 my_turn.
+
 opponents_turn(X) :- write('\n\nIt is the '), write(X), write(' opponent\'s turn\n'),
 					 Z is X + 1,
 					 opponent_win,
@@ -240,13 +303,13 @@ opponent_ask :- write('Did your opponent make a guess?\n(y/n)'),
 
 opponent_guess(n).
 
-opponent_guess(y) :- write('What was one of you opponent\'s guesses?\n'),
+opponent_guess(y) :- write('What was your opponent\'s character guess?\n'),
 					 read(Guess),
 					 set_possible(Guess),
-					 write('What was their other guess? \n'),
+					 write('What was their room guess? \n'),
 					 read(Guess2),
 					 set_possible(Guess2),
-					 write('What was their last guess? \n'),
+					 write('What was their weapon guess? \n'),
 					 read(Guess3),
 					 set_possible(Guess3).
 
