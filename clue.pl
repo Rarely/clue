@@ -1,10 +1,11 @@
 % Clue Game %
 
 % TODO LIST %
-% The guess! %
-% If known, do not set possible %
-% When shown a card, remove it from possible and add to known %
-% Accuse when all but 1 of each card type is unknown %
+% Show a card when opponent guesses 
+% Refactor Possible into Unknown, they do the same thing! 
+% Beginning known cards to loop for only a known number 
+% Error handling: Loop Exit and Re-entry
+	     	    % invalid entries
 
 % First call to start the Clue Helper %
 clue :- init.
@@ -101,23 +102,31 @@ set_card(Card) :- room(Card),
 				   get_cards.				   
 
 set_weapon(Card) :- assert(knownWeapons(Card)),
-				    retract(unknownWeapons(Card)).
+				    retractall(unknownWeapons(Card)),
+				    retractall(possibleWeapons(Card,_)).
 
 set_character(Card) :- assert(knownCharacters(Card)),
-				       retract(unknownCharacters(Card)).
+				       retractall(unknownCharacters(Card)),
+				       retractall(possibleCharacters(Card,_)).
 
 set_room(Card) :- assert(knownRooms(Card)),
-				  retract(unknownRooms(Card)).
+				  retractall(unknownRooms(Card)),
+				  retractall(possibleRooms(Card,_)).
 
-
+set_possible(Card) :- knownCharacters(Card).
+set_possible(Card) :- knownRooms(Card).
+set_possible(Card) :- knownWeapons(Card). 
 
 set_possible(Card) :- weapon(Card),
+					  unknownWeapons(Card),
 					  set_possible_weapon(Card).
 
 set_possible(Card) :- character(Card),
+					  unknownCharacters(Card),
 				      set_possible_character(Card).
 
 set_possible(Card) :- room(Card),
+					  unknownRooms(Card),
 				      set_possible_room(Card).
 
 %----- Set Possible Characters -----%
@@ -126,23 +135,13 @@ set_possible_character(Card) :- possibleCharacters(Card,X),
 							    retractall(possibleCharacters(Card,_)),
 							    assert(possibleCharacters(Card, Y)).
 
-set_possible_character(Card) :- not(possibleCharacters(Card,_)), 
-							    assert(possibleCharacters(Card, 0)).
-
-
 %----- Set Possible Rooms -----%
-set_possible_room(Card) :- not(possibleRooms(Card,_)), 
-						   assert(possibleRooms(Card, 1)).
-
 set_possible_room(Card) :- possibleRooms(Card,X),
 						   Y is X + 1,
 						   retractall(possibleRooms(Card,_)),
 						   assert(possibleRooms(Card, Y)).
 
 %----- Set Possible Weapons -----%
-set_possible_weapon(Card) :- not(possibleWeapons(Card,_)), 
-							 assert(possibleWeapons(Card, 1)).
-
 set_possible_weapon(Card) :- possibleWeapons(Card,X),
 							 Y is X + 1,
 							 retractall(possibleWeapons(Card,_)),
@@ -154,23 +153,35 @@ init_game_state :- init_characters,
 				   init_weapons, 
 				   init_rooms.
 
-% Initalize all characters to unknown %
+% Initalize all characters to unknown and possible %
 init_characters :- assert(unknownCharacters(scarlett)),
 				   assert(unknownCharacters(mustard)),
 				   assert(unknownCharacters(white)),
 				   assert(unknownCharacters(green)),
 				   assert(unknownCharacters(peacock)),
-				   assert(unknownCharacters(plum)).
+				   assert(unknownCharacters(plum)),
+                   assert(possibleCharacters(scarlett, 0)),
+				   assert(possibleCharacters(mustard, 0)),
+				   assert(possibleCharacters(white, 0)),
+				   assert(possibleCharacters(green, 0)),
+				   assert(possibleCharacters(peacock, 0)),
+				   assert(possibleCharacters(plum, 0)).
 
-% Initalize all weapons to unknown %
+% Initalize all weapons to unknown and possible %
 init_weapons :- assert(unknownWeapons(candlestick)),
 				assert(unknownWeapons(dagger)),
 				assert(unknownWeapons(pipe)),
 				assert(unknownWeapons(revolver)),
 				assert(unknownWeapons(rope)),
-				assert(unknownWeapons(wrench)).
+				assert(unknownWeapons(wrench)),
+				assert(possibleWeapons(candlestick, 0)),
+				assert(possibleWeapons(dagger, 0)),
+				assert(possibleWeapons(pipe, 0)),
+				assert(possibleWeapons(revolver, 0)),
+				assert(possibleeapons(rope, 0)),
+				assert(possibleWeapons(wrench, 0)).
 
-% Initalize all rooms to unknown %
+% Initalize all rooms to unknown and possible %
 init_rooms :- assert(unknownRooms(kitchen)),
 			  assert(unknownRooms(ballroom)),
 			  assert(unknownRooms(conservatory)),
@@ -179,7 +190,16 @@ init_rooms :- assert(unknownRooms(kitchen)),
 			  assert(unknownRooms(library)),
 			  assert(unknownRooms(lounge)),
 			  assert(unknownRooms(hall)),
-			  assert(unknownRooms(study)).
+			  assert(unknownRooms(study)),
+              assert(possibleRooms(kitchen, 0)),
+			  assert(possibleRooms(ballroom, 0)),
+			  assert(possibleRooms(conservatory, 0)),
+			  assert(possibleRooms(diningroom, 0)),
+			  assert(possibleRooms(billiard, 0)),
+			  assert(possibleRooms(library, 0)),
+			  assert(possibleRooms(lounge, 0)),
+			  assert(possibleRooms(hall, 0)),
+			  assert(possibleRooms(study, 0)).
 
 clear_game_state :- retractall(numPlayers(_)),
 					retractall(unknownWeapons(_)),
@@ -204,10 +224,11 @@ which_room_interface :- write('Which room? (Ex: hall.) \n'),
                       read(Room),
                       which_room_handler(Room).
 
-which_room_handler(Room) :- knownRooms(Room), !, already_seen_room_interface.  
-which_room_handler(Room) :- unknownRooms(Room), !, exit_room_interface.
+which_room_handler(Room) :- knownRooms(Room), already_seen_room_interface.  
+which_room_handler(Room) :- unknownRooms(Room), exit_room_interface.
 
-already_seen_room_interface :- write('We\'ve already seen this room...\n'), closest_room_interface.
+already_seen_room_interface :- write('We\'ve already seen this room \n'), 
+							   closest_room_interface.
 
 closest_room_interface :- write('What is the closest room?\n'),
                         read(ClosestRoom),
@@ -221,8 +242,7 @@ closest_room_handler(ClosestRoom) :- unknownRooms(ClosestRoom), !,
 									 go_to_room_interface.
 
 
-loop_next_closest_room_interface :- write('We\'ve already seen this room too...\n
-	                                         What is the next closest room?\n'),
+loop_next_closest_room_interface :- write('We\'ve already seen this room \nWhat is the next closest room?\n'),
                                     read(ClosestRoom),
                                     closest_room_handler(ClosestRoom).
 
@@ -241,7 +261,7 @@ did_you_win_interface :- write('Did you win?\n(y/n)'),
                         did_you_win_handler(Win).
 
 did_you_win_handler(n) :- input_card_interface.
-did_you_win_handler(y) :- write('Yipee! B-)'), true.
+did_you_win_handler(y) :- write('Yipee! B-)'), fail.
 
 input_card_interface :- write('Input shown card:\n'),
                         read(Card),
@@ -314,4 +334,4 @@ opponent_guess(y) :- write('What was your opponent\'s character guess?\n'),
 					 set_possible(Guess3).
 
 game_over(n).
-game_over(y):- write('That sucks! \nBetter luck next time. \nPlease don\'t blame me.'), false.
+game_over(y):- write('That sucks! \nBetter luck next time. \nPlease don\'t blame me.'), fail.
