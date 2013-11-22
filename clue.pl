@@ -11,6 +11,7 @@ clue :- init.
 % The dynamic lists the will be changing throughout the game 
 :- dynamic numPlayers/1.
 :- dynamic currentRoom/1.
+:- dynamic yourCards/1.
 
 :- dynamic unknownWeapons/2.
 :- dynamic unknownCharacters/2.
@@ -107,9 +108,9 @@ get_num_players :- write('How many players are there? Example "6." \n'),
 set_players(NumPlayers) :- assert(numPlayers(NumPlayers)).
 
 % Get all the cards player is holder
-get_cards :- write('Please state the cards you are holding.\n Example "candlestick.", if you have entered all cards type "done." \n' ),
+get_cards :- write('Please state the cards you are holding.\n Example "candlestick."\n If you have entered all cards type "done." \n' ),
 			 read(Card),
-			 set_card(Card).
+			 update_card(Card).
 
 % Find which players turn it is and 
 % prompt the user accordingly.
