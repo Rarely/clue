@@ -1,9 +1,13 @@
 % Clue Game %
 
-% TODO LIST %
-% Show a card when opponent guesses 
-% Error handling: Loop Exit and Re-entry
-	     	    % invalid entries
+% TODO LIST % 
+% Comment code
+% Error handling: 
+%---- Loop Exit and Re-entry
+%---- Invalid entries
+% It seems like if you exit when an opponent wins it is getting
+% caught up in the our turn still and asking if we won.
+% maybe there is a call there that is waiting and shouldn't be?
 
 % First call to start the Clue Helper 
 clue :- init.
@@ -11,7 +15,10 @@ clue :- init.
 % The dynamic lists the will be changing throughout the game 
 :- dynamic numPlayers/1.
 :- dynamic currentRoom/1.
-:- dynamic yourCards/1.
+
+:- dynamic yourCharacters/1.
+:- dynamic yourWeapons/1.
+:- dynamic yourRooms/1.
 
 :- dynamic unknownWeapons/2.
 :- dynamic unknownCharacters/2.
@@ -90,6 +97,9 @@ init_rooms :- assert(unknownRooms(kitchen, 0)),
 
 % Clear the game state
 clear_game_state :- retractall(numPlayers(_)),
+					retractall(yourCharacters(_,_)),
+					retractall(yourWeapons(_,_)),
+					retractall(yourRooms(_,_)),
 					retractall(knownCharacters(_)),
 					retractall(knownWeapons(_)),
 					retractall(knownRooms(_)),
@@ -100,7 +110,7 @@ clear_game_state :- retractall(numPlayers(_)),
 %------ Start of Game information ------%
 
 % Get the number of players playing 
-get_num_players :- write('How many players are there? Example "6." \n'),
+get_num_players :- write('\nHow many players are there?\nExample "6." \n'),
 				   read(NumPlayers),
 				   set_players(NumPlayers).
 
@@ -108,54 +118,59 @@ get_num_players :- write('How many players are there? Example "6." \n'),
 set_players(NumPlayers) :- assert(numPlayers(NumPlayers)).
 
 % Get all the cards player is holder
-get_cards :- write('Please state the cards you are holding.\n Example "candlestick."\n If you have entered all cards type "done." \n' ),
+get_cards :- write('\nPlease state the cards you are holding.\n Example "candlestick."\n If you have entered all cards type "done." \n' ),
 			 read(Card),
 			 update_card(Card).
 
 % Find which players turn it is and 
 % prompt the user accordingly.
-find_turn :- write('Is it our turn?\n(y/n)'),
+find_turn :- write('\nIs it our turn?\n(y/n)'),
              read(OurTurn),
              is_our_turn(OurTurn).
 
 is_our_turn(y) :- my_turn.
-is_our_turn(n) :- write('Which player\'s turn, from your left, is it?\n(0..Number of Players - 1)\n'),
+is_our_turn(n) :- write('\nWhich player\'s turn, from your left, is it?\n(0..Number of Players - 1)\n'),
                   read(OpponentsTurn),
                   opponents_turn(OpponentsTurn).
              
 %------ Update Cards ------%
 
+%Update the cards until the user types done
 update_card(done) :- find_turn.
 
 update_card(Card) :- character(Card),
+					 assert(yourCharacters(Card)),
 				   	 assert(knownCharacters(Card)),
 				     retractall(unknownCharacters(Card,_)),
 				   	 get_cards.
 
 update_card(Card) :- weapon(Card),
+					 assert(yourWeapons(Card)),
 				   	 assert(knownWeapons(Card)),
 				     retractall(unknownWeapons(Card,_)),
 				   	 get_cards.
 
 update_card(Card) :- room(Card),
+					 assert(yourRooms(Card)),
 				   	 assert(knownRooms(Card)),
 				  	 retractall(unknownRooms(Card,_)),
 				   	 get_cards.				   
 
+%Update the unknown cards
 update_unknown(Card) :- knownCharacters(Card).
 update_unknown(Card) :- knownWeapons(Card). 
 update_unknown(Card) :- knownRooms(Card).
 
 update_unknown(Card) :- character(Card),
-					  	unknownCharacters(Card),
-				      	update_unknown_character(Card).
+					  	unknownCharacters(Card,_),
+				      	update_unknown_char(Card).
 
 update_unknown(Card) :- weapon(Card),
-					 	unknownWeapons(Card),
-					  	update_unknown_weapon(Card).
+					 	unknownWeapons(Card,_),
+					  	update_unknown_weap(Card).
 
 update_unknown(Card) :- room(Card),
-					  	unknownRooms(Card),
+					  	unknownRooms(Card,_),
 				      	update_unknown_room(Card).
 
 update_unknown_char(Card) :- unknownCharacters(Card,X),
@@ -176,40 +191,40 @@ update_unknown_room(Card) :- unknownRooms(Card,X),
 
 %------ Our turn ------%
 
-my_turn :- write('Are you in a room?\n(y/n)'),
+my_turn :- write('\nAre you in a room?\n(y/n)'),
            read(InRoom),
            in_room_handler(InRoom).
 
 in_room_handler(n) :- closest_room_interface.
 in_room_handler(y) :- which_room_interface. 
 
-which_room_interface :- write('Which room? (Ex: hall.) \n'),
+which_room_interface :- write('\nWhich room? (Ex: hall.) \n'),
                         read(Room),
                         which_room_handler(Room).
 
 which_room_handler(Room) :- knownRooms(Room), already_seen_room_interface.  
-which_room_handler(Room) :- unknownRooms(Room), exit_room_interface.
+which_room_handler(Room) :- unknownRooms(Room,_), exit_room_interface.
 
-already_seen_room_interface :- write('We\'ve already seen this room \n'), 
+already_seen_room_interface :- write('\nWe\'ve already seen this room \n'), 
 							   closest_room_interface.
 
-closest_room_interface :- write('What is the closest room?\n'),
+closest_room_interface :- write('\nWhat is the closest room?\n'),
                           read(ClosestRoom),
                           closest_room_handler(ClosestRoom).
 
 closest_room_handler(ClosestRoom) :- knownRooms(ClosestRoom), !, loop_next_closest_room_interface.
 
-closest_room_handler(ClosestRoom) :- unknownRooms(ClosestRoom), !, 
+closest_room_handler(ClosestRoom) :- unknownRooms(ClosestRoom,_), !, 
 									 retractall(currentRoom(_)),
 									 assert(currentRoom(ClosestRoom)),
 									 go_to_room_interface.
 
 
-loop_next_closest_room_interface :- write('We\'ve already seen this room \nWhat is the next closest room?\n'),
+loop_next_closest_room_interface :- write('\nWe\'ve already seen this room \nWhat is the next closest room?\n'),
                                     read(ClosestRoom),
                                     closest_room_handler(ClosestRoom).
 
-go_to_room_interface :- write('Go there... did you make it?\n(y/n)'),
+go_to_room_interface :- write('\nGo there... did you make it?\n(y/n)'),
                         read(ToRoom),
                         go_to_room_handler(ToRoom).
 
@@ -219,31 +234,42 @@ go_to_room_handler(y) :- suspect_this.
 suspect_this :- the_guess,
                 did_you_win_interface.
 
-did_you_win_interface :- write('Did you win?\n(y/n)'),
+did_you_win_interface :- write('\nDid you win?\n(y/n)'),
                         read(Win),
                         did_you_win_handler(Win).
 
 did_you_win_handler(n) :- input_card_interface.
-did_you_win_handler(y) :- write('Yipee! B-)'), fail.
+did_you_win_handler(y) :- write('Yipee! B-)'),!, false.
 
-input_card_interface :- write('Input shown card:\n'),
+input_card_interface :- write('\nInput shown card:\n'),
                         read(Card),
-                        input_card_handler(Card).
+                        update_input_card(Card).
 
-input_card_handler(Card) :- weapon(Card), set_weapon(Card), end_turn_interface.
-input_card_handler(Card) :- character(Card), set_character(Card), end_turn_interface.
-input_card_handler(Card) :- room(Card), set_room(Card), end_turn_interface.
+update_input_card(Card) :- character(Card),
+				   	 	   assert(knownCharacters(Card)),
+				     	   retractall(unknownCharacters(Card,_)),
+				     	   end_turn_interface.
 
-end_turn_interface :- write('Our turn is over; opponents\' turn now...\n'), opponents_turn.
+update_input_card(Card) :- weapon(Card),
+				   	 	   assert(knownWeapons(Card)),
+				     	   retractall(unknownWeapons(Card,_)),
+				     	   end_turn_interface.
 
-exit_room_interface :- write('Exit the room, but stay close!\n'),
+update_input_card(Card) :- room(Card),
+				   	 	   assert(knownRooms(Card)),
+				  	 	   retractall(unknownRooms(Card,_)),
+				  	 	   end_turn_interface.	
+
+end_turn_interface :- write('\nOur turn is over; opponents\' turn now...\n'), opponents_turn.
+
+exit_room_interface :- write('\nExit the room, but stay close!\n'),
                        end_turn_interface.
 
 %------ The Guess ------%
-the_guess :- guess_character(X),
+the_guess :- guess_char(X),
 			 guess_room(Y),
-			 guess_weapon(Z),
-			 write('Guess the following: \n'),
+			 guess_weap(Z),
+			 write('\nGuess the following: \n'),
 			 print_guesses(X,Y,Z).
 
 print_guesses(X,Y,Z) :- write('Character: '), write(X), write('\n'),
@@ -277,11 +303,11 @@ opponents_turn(X) :- write('\n\nIt is the '), write(X), write(' opponent\'s turn
 				     opponent_ask,
 				     opponents_turn(Z). 
 
-opponent_win :- write('Did your opponent win?\n(y/n)'),
+opponent_win :- write('\nDid your opponent win?\n(y/n)'),
 				read(Win),
 				game_over(Win).
 
-opponent_ask :- write('Did your opponent make a guess?\n(y/n)'),
+opponent_ask :- write('\nDid your opponent make a guess?\n(y/n)'),
 				read(Guess),
 				opponent_guess(Guess).
 
@@ -295,10 +321,26 @@ opponent_guess(y) :- write('What was your opponent\'s character guess?\n'),
 					 update_unknown(Guess2),
 					 write('What was their weapon guess? \n'),
 					 read(Guess3),
-					 update_unknown(Guess3).
+					 update_unknown(Guess3),
+					 show_card(Guess, Guess2, Guess3).
+
+
+show_card(Guess,_,_):- yourCharacters(Guess),
+				   				   write('\nIf you are asked, show them this Character: '),
+				                   write(Guess).
+
+show_card(_,Guess2,_):- yourWeapons(Guess2),
+				   				   write('\nIf you are asked, show them this Weapon: '),
+				   				   write(Guess2).
+
+show_card(_,_,Guess3):- yourRooms(Guess3),
+				  				   write('\nIf you are asked, show them this Room: '),
+				   				   write(Guess3).
+
+show_card(_,_,_).
 
 game_over(n).
-game_over(y):- write('That sucks! \nBetter luck next time. \nPlease don\'t blame me.'), fail.
+game_over(y):- write('\nThat sucks!\nBetter luck next time.\nPlease don\'t blame me.'),!, false.
 
 fact(0,1).
 fact(N,F) :- N > 0,N1 is N - 1, fact(N1,F1),F is F1 * N.
