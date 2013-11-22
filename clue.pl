@@ -1,6 +1,8 @@
 % Clue Game %
 
 % TODO LIST % 
+% There is an issue that if you get pulled into a room you
+% were heading to, it will not allow you to make a move in that room
 % Comment code
 % Error handling: 
 %---- Loop Exit and Re-entry
