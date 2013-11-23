@@ -1,6 +1,11 @@
 % Clue Game %
 
 % TODO LIST % 
+% Exit a room and go to another room bug
+% flip the order of the win and guess
+% Doesn't show an opponent a room when we have it.
+% Change player numbers to oppenents
+% Opponents not resetting 
 % There is an issue that if you get pulled into a room you
 % were heading to, it will not allow you to make a move in that room
 % Comment code
@@ -19,7 +24,7 @@ clue :- init.
 :- dynamic currentRoom/1.
 
 :- dynamic yourCharacters/1.
-:- dynamic yourWeapons/1.
+:- dynamic yourWeapons/1.n.
 :- dynamic yourRooms/1.
 
 :- dynamic unknownWeapons/2.
@@ -41,23 +46,23 @@ character(peacock).
 character(plum).
 
 % List of all possible weapons
-weapon(candlestick).
-weapon(dagger).
-weapon(pipe).
-weapon(revolver).
-weapon(rope).
-weapon(wrench).
+weapon(donut).
+weapon(glove).
+weapon(necklace).
+weapon(slingshot).
+weapon(rod).
+weapon(saxaphone).
 
 % List of all possible rooms
-room(kitchen).
-room(ballroom).
-room(conservatory).
-room(diningroom).
-room(billiard).
-room(library).
-room(lounge).
-room(hall).
-room(study).
+room(barney).
+room(krusty).
+room(nuclear).
+room(simpson).
+room(dutchman).
+room(kwik).
+room(burns).
+room(springfield).
+room(dungeon).
 
 % Initalize the game state
 init :- clear_game_state,
@@ -79,23 +84,23 @@ init_characters :- assert(unknownCharacters(scarlett, 0)),
 				   assert(unknownCharacters(plum, 0)).
 
 % Initalize all weapons to unknown 
-init_weapons :- assert(unknownWeapons(candlestick, 0)),
-				assert(unknownWeapons(dagger, 0)),
-				assert(unknownWeapons(pipe, 0)),
-				assert(unknownWeapons(revolver, 0)),
-				assert(unknownWeapons(rope, 0)),
-				assert(unknownWeapons(wrench, 0)).
+init_weapons :- assert(unknownWeapons(donut, 0)),
+				assert(unknownWeapons(glove, 0)),
+				assert(unknownWeapons(necklace, 0)),
+				assert(unknownWeapons(slingshot, 0)),
+				assert(unknownWeapons(rod, 0)),
+				assert(unknownWeapons(saxaphone, 0)).
 
 % Initalize all rooms to unknown
-init_rooms :- assert(unknownRooms(kitchen, 0)),
-			  assert(unknownRooms(ballroom, 0)),
-			  assert(unknownRooms(conservatory, 0)),
-			  assert(unknownRooms(diningroom, 0)),
-			  assert(unknownRooms(billiard, 0)),
-			  assert(unknownRooms(library, 0)),
-			  assert(unknownRooms(lounge, 0)),
-			  assert(unknownRooms(hall, 0)),
-			  assert(unknownRooms(study, 0)).
+init_rooms :- assert(unknownRooms(barney, 0)),
+			  assert(unknownRooms(krusty, 0)),
+			  assert(unknownRooms(nuclear, 0)),
+			  assert(unknownRooms(simpson, 0)),
+			  assert(unknownRooms(dutchman, 0)),
+			  assert(unknownRooms(kwik, 0)),
+			  assert(unknownRooms(burns, 0)),
+			  assert(unknownRooms(springfield, 0)),
+			  assert(unknownRooms(dungeon, 0)).
 
 % Clear the game state
 clear_game_state :- retractall(numPlayers(_)),
@@ -214,9 +219,9 @@ closest_room_interface :- write('\nWhat is the closest room?\n'),
                           read(ClosestRoom),
                           closest_room_handler(ClosestRoom).
 
-closest_room_handler(ClosestRoom) :- knownRooms(ClosestRoom), !, loop_next_closest_room_interface.
+closest_room_handler(ClosestRoom) :- knownRooms(ClosestRoom), loop_next_closest_room_interface.
 
-closest_room_handler(ClosestRoom) :- unknownRooms(ClosestRoom,_), !, 
+closest_room_handler(ClosestRoom) :- unknownRooms(ClosestRoom,_), 
 									 retractall(currentRoom(_)),
 									 assert(currentRoom(ClosestRoom)),
 									 go_to_room_interface.
