@@ -3,9 +3,6 @@
 % TODO LIST % 
 % - Exit a room and go to another room bug
 % - Doesn't show an opponent a room when we have it.
-% - There is an issue that if you get pulled into a room you
-%   were heading to, it will not allow you to make a move in that room
-% - Comment code
 % - It seems like if you exit when an opponent wins it is getting
 %   caught up in the our turn still and asking if we won.
 %   maybe there is a call there that is waiting and shouldn't be?
@@ -99,9 +96,9 @@ init_rooms :- assert(unknownRooms(barney, 0)),
 
 % Clear the game state
 clear_game_state :- retractall(numPlayers(_)),
-					retractall(yourCharacters(_,_)),
-					retractall(yourWeapons(_,_)),
-					retractall(yourRooms(_,_)),
+					retractall(yourCharacters(_)),
+					retractall(yourWeapons(_)),
+					retractall(yourRooms(_)),
 					retractall(knownCharacters(_)),
 					retractall(knownWeapons(_)),
 					retractall(knownRooms(_)),
@@ -112,7 +109,7 @@ clear_game_state :- retractall(numPlayers(_)),
 %------ Start of Game information ------%
 
 % Get the number of players playing 
-get_num_players :- write('\nHow many oppenents are there?\nExample "6." \n'),
+get_num_players :- write('\nHow many oppenents are there?\nExample "5." \n'),
 				   read(NumPlayers),
 				   set_players(NumPlayers).
 
@@ -212,8 +209,16 @@ which_room_interface :- write('\nWhich room? (Ex: hall.) \n'),
                         which_room_handler(Room).
 
 which_room_handler(Room) :- knownRooms(Room), already_seen_room_interface.  
-which_room_handler(Room) :- unknownRooms(Room,_), exit_room_interface.
+which_room_handler(Room) :- unknownRooms(Room,_),
+							write('Did you get pulled into this room?\n(y/n.)\n'),
+							read(Pulled),
+							pulled_into_room(Room, Pulled).
 which_room_handler(_)    :- write('That is not a room bro, Try again:\n'), which_room_interface.
+
+pulled_into_room(Room,y) :- retractall(currentRoom(_)),
+							assert(currentRoom(Room)),
+							suspect_this.
+pulled_into_room(_,n) 	 :- exit_room_interface.
 
 already_seen_room_interface :- write('\nWe\'ve already seen this room \n'), 
 							   closest_room_interface.
@@ -344,14 +349,13 @@ show_card(Guess,_,_):- yourCharacters(Guess),
 				   				   write('\nIf you are asked, show them this Character: '),
 				                   write(Guess).
 
-show_card(_,Guess2,_):- yourWeapons(Guess2),
-				   				   write('\nIf you are asked, show them this Weapon: '),
-				   				   write(Guess2).
-
-show_card(_,_,Guess3):- yourRooms(Guess3),
-				  				   write('\nIf you are asked, show them this Room: '),
+show_card(_,_,Guess3):- yourWeapons(Guess3),
+				  				   write('\nIf you are asked, show them this Weapon: '),
 				   				   write(Guess3).
 
+show_card(_,Guess2,_):- yourRooms(Guess2),
+				   				   write('\nIf you are asked, show them this Room: '),
+				   				   write(Guess2).
 show_card(_,_,_).
 
 game_over(n).
