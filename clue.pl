@@ -1,13 +1,15 @@
-% Clue Game %
+% Clue Advisor %
 
 % TODO LIST % 
-% - Exit a room and go to another room bug
-% - Doesn't show an opponent a room when we have it.
+% - Added heustric in
+% - Comment code
 % - It seems like if you exit when an opponent wins it is getting
 %   caught up in the our turn still and asking if we won.
 %   maybe there is a call there that is waiting and shouldn't be?
 
+%=================================================================================================
 % First call to start the Clue Helper 
+%=================================================================================================
 clue :- init.
 re_enter :- find_turn.
 
@@ -27,7 +29,9 @@ re_enter :- find_turn.
 :- dynamic knownCharacters/1.
 :- dynamic knownRooms/1.
 
+%=================================================================================================
 %------ Pieces and Cards ------%
+%=================================================================================================
 
 % List of all possible characters
 character(scarlett).
@@ -56,7 +60,9 @@ room(burns).
 room(springfield).
 room(dungeon).
 
+%=================================================================================================
 % Initalize the game state
+%=================================================================================================
 init :- clear_game_state,
 		init_game_state,
 		get_num_players,
@@ -106,10 +112,12 @@ clear_game_state :- retractall(numPlayers(_)),
 					retractall(unknownWeapons(_,_)),
 					retractall(unknownRooms(_,_)).
 
+%=================================================================================================
 %------ Start of Game information ------%
+%=================================================================================================
 
 % Get the number of players playing 
-get_num_players :- write('\nHow many opponents are there?\nExample "5." \n'),
+get_num_players :- write('\nHow many oppenents are there?\nExample "5." \n'),
 				   read(NumPlayers),
 				   set_players(NumPlayers).
 
@@ -122,7 +130,7 @@ get_cards :- write('\nPlease state the cards you are holding.\n Example "candles
 			 update_card(Card).
 
 % Find which players turn it is and 
-% prompt the user accordingly.
+% Prompt the user accordingly.
 find_turn :- write('\nIs it our turn?\n(y/n)'),
              read(OurTurn),
              is_our_turn(OurTurn).
@@ -132,8 +140,10 @@ is_our_turn(n) :- write('\nWhich player\'s turn, from your left, is it?\n(0..Num
                   read(OpponentsTurn),
                   opponents_turn(OpponentsTurn).
 is_our_turn(_) :- write('Please answer with y or n only. Try again:\n'), find_turn.
-             
+
+%=================================================================================================
 %------ Update Cards ------%
+%=================================================================================================
 
 % Update the cards until the user types done
 update_card(done) :- find_turn.
@@ -159,11 +169,14 @@ update_card(Card) :- room(Card),
 update_card(_) :- write('That\'s not even a card bro... try again:\n'), 
                   read(Card), update_card(Card).
 
-%Update the unknown cards
+% These update_unknown functions are used to help us keep track of what other
+% players are guessing. Everytime they guess we increment the value of the card
+% If the card is already known, we do not need to update it
 update_unknown(Card) :- knownCharacters(Card).
 update_unknown(Card) :- knownWeapons(Card). 
 update_unknown(Card) :- knownRooms(Card).
 
+% If a card is unknown, update its value
 update_unknown(Card) :- character(Card),
 					  	unknownCharacters(Card,_),
 				      	update_unknown_char(Card).
@@ -179,6 +192,7 @@ update_unknown(Card) :- room(Card),
 update_unknown(_) :- write('That\'s not even a card bro... try again:\n'), 
                      read(Card), update_unknown(Card).
 
+% Update the value of a card
 update_unknown_char(Card) :- unknownCharacters(Card,X),
 							 Y is X + 1,
 							 retractall(unknownCharacters(Card,_)),
@@ -194,8 +208,9 @@ update_unknown_room(Card) :- unknownRooms(Card,X),
 						     retractall(unknownRooms(Card,_)),
 						     assert(unknownRooms(Card, Y)).
 
-
+%=================================================================================================
 %------ Our turn ------%
+%=================================================================================================
 
 my_turn :- write('\nAre you in a room?\n(y/n)'),
            read(InRoom),
@@ -216,6 +231,7 @@ which_room_handler(Room) :- unknownRooms(Room,_),
 							pulled_into_room(Room, Pulled).
 which_room_handler(_)    :- write('That is not a room bro, Try again:\n'), which_room_interface.
 
+% Ask if the opponent was pulled because the currentRoom will need to be updated.
 pulled_into_room(Room,y) :- retractall(currentRoom(_)),
 							assert(currentRoom(Room)),
 							suspect_this.
@@ -287,7 +303,11 @@ end_turn_interface :- write('\nOur turn is over; opponents\' turn now...\n'), op
 exit_room_interface :- write('\nExit the room, but stay close!\n'),
                        end_turn_interface.
 
+%=================================================================================================
 %------ The Guess ------%
+%=================================================================================================
+
+%Print out the guess for the player
 the_guess :- guess_char(X),
 			 guess_room(Y),
 			 guess_weap(Z),
@@ -295,49 +315,61 @@ the_guess :- guess_char(X),
 			 print_guesses(X,Y,Z).
 
 print_guesses(X,Y,Z) :- write('Character: '), write(X), write('\n'),
-					    write('Room: '), write(Y), write('\n'),
-					    write('Weapon: '), write(Z), write('\n').
+					    write('Room: '),      write(Y), write('\n'),
+					    write('Weapon: '),    write(Z), write('\n').
 
+% Always print the current room the player is in
 guess_room(Room) :- currentRoom(Room).
 
+% Find out what highest valued character and guess that
 guess_char(Char) :- findall(X, unknownCharacters(_,X),L),
 				    max(L,Max),
 					unknownCharacters(Char,Max).
 
+% Find out the highest valued weapon and guess that
 guess_weap(Weap) :- findall(X, unknownWeapons(_,X),L),
 					max(L,Max),
 					unknownWeapons(Weap,Max).
+
+% Helper function to return the max value in a list					
 max([X],X).
 max([X|Xs],X):- max(Xs,Y), X >=Y.
 max([X|Xs],N):- max(Xs,N), N > X.
 
+%=================================================================================================
 %------ Opponents turns ------%
+%=================================================================================================
 
-opponents_turn :- opponents_turn(0).
-
+% Loop through the functionality for each opponent asking if:
+% Did they make a guess?
+% Did they win?
+opponents_turn    :- opponents_turn(0).
 opponents_turn(X) :- numPlayers(X), % Its now your turn again %
 					 write('\nIt is now your turn to play again!\n'),
 					 my_turn.
-
 opponents_turn(X) :- write('\n\nIt is the '), write(X), write(' opponent\'s turn\n'),
 					 Z is X + 1,
 					 opponent_ask,
 				     opponent_win,
 				     opponents_turn(Z). 
 
-opponent_win :- write('\nDid your opponent win?\n(y/n)'),
-				read(Win),
-				game_over(Win).
-
+% Ask if the opponent made a guess or not
 opponent_ask :- write('\nDid your opponent make a guess?\n(y/n)'),
 				read(Guess),
 				opponent_guess(Guess).
 
-opponent_guess(n).
+% Ask to see if the opponent won the game or not
+opponent_win :- write('\nDid your opponent win?\n(y/n)'),
+				read(Win),
+				game_over(Win).
 
+% If the opponent made a guess, if we have a card that they guessed
+% show them card, if we have 2 of those cards, always show them in 
+% order of character > weapon > room
+opponent_guess(n).
 opponent_guess(y) :- write('What was your opponent\'s character guess?\n'),
-					 read(Guess),
-					 update_unknown(Guess),
+					 read(Guess1),
+					 update_unknown(Guess1),
 					 write('What was their room guess? \n'),
 					 read(Guess2),
 					 update_unknown(Guess2),
@@ -346,18 +378,18 @@ opponent_guess(y) :- write('What was your opponent\'s character guess?\n'),
 					 update_unknown(Guess3),
 					 show_card(Guess, Guess2, Guess3).
 
-show_card(Guess,_,_):- yourCharacters(Guess),
+% Output the card a player should show if they have a card
+show_card(Guess1,_,_):- yourCharacters(Guess1),
 				   				   write('\nIf you are asked, show them this Character: '),
-				                   write(Guess).
-
+				                   write(Guess1).
 show_card(_,_,Guess3):- yourWeapons(Guess3),
 				  				   write('\nIf you are asked, show them this Weapon: '),
 				   				   write(Guess3).
-
 show_card(_,Guess2,_):- yourRooms(Guess2),
 				   				   write('\nIf you are asked, show them this Room: '),
 				   				   write(Guess2).
 show_card(_,_,_).
 
+% If the game has ended, display a message and stop the game
 game_over(n).
 game_over(y):- write('\nThat sucks!\nBetter luck next time.\nPlease don\'t blame me.'),!, false.
