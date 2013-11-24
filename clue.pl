@@ -112,7 +112,7 @@ clear_game_state :- retractall(numPlayers(_)),
 %------ Start of Game information ------%
 
 % Get the number of players playing 
-get_num_players :- write('\nHow many oppenents are there?\nExample "6." \n'),
+get_num_players :- write('\nHow many opponents are there?\nExample "6." \n'),
 				   read(NumPlayers),
 				   set_players(NumPlayers).
 
@@ -134,6 +134,7 @@ is_our_turn(y) :- my_turn.
 is_our_turn(n) :- write('\nWhich player\'s turn, from your left, is it?\n(0..Number of Opponents - 1)\n'),
                   read(OpponentsTurn),
                   opponents_turn(OpponentsTurn).
+is_our_turn(_) :- write('Please answer with y or n only. Try again:\n'), find_turn.
              
 %------ Update Cards ------%
 
