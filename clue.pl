@@ -1,4 +1,17 @@
 
+/******************************
+
+    Program:
+    	Clue Board Game Advisor
+
+	Authors:
+		Cody Robinson
+		Gurkaran Poonia
+
+	Date:
+		November 25, 2013
+
+******************************/
 
 %=================================================================================================
 % First call to start the Clue Helper 
@@ -111,7 +124,7 @@ clear_game_state :- retractall(numPlayers(_)),
 %=================================================================================================
 
 starting_info :- write('Welcome! I will be advising you on how to win Clue!\nFollow my steps and give me the correct information and let us crush your opponents!\n'),
-				 write('At anytime if you need to see a list of helpful information, please type "help.'), nl,
+				 write('At anytime if you need to see a list of helpful information, please type "help."'), nl,
 				 help_menu,nl,nl,
 				 write('Let us BEGIN!'), nl.
 
@@ -309,7 +322,6 @@ go_to_room_handler(help) :- help_menu, go_to_room_interface.
 go_to_room_handler(n) 	 :- end_turn_interface.
 go_to_room_handler(y) 	 :- suspect_this.
 go_to_room_handler(_) 	 :- write('Please answer with y or n only. Try again:\n'), go_to_room_interface.
-
 % Initiates the guess/suspect logic and prompts player
 % to determine if we won.
 suspect_this :- the_guess,
@@ -335,6 +347,7 @@ input_card_interface :- write('\nInput shown card:\n'),
 % Determines the type of card the player was shown
 % and updates known card appropriately.
 update_input_card(help) :- help_menu, input_card_interface.
+
 update_input_card(Card) :- character(Card),
 				   	 	   assert(knownCharacters(Card)),
 				     	   retractall(unknownCharacters(Card,_)),
