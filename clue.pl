@@ -1,9 +1,16 @@
-% Clue Advisor %
+/******************************
 
-% TODO LIST % 
-% - It seems like if you exit when an opponent wins it is getting
-%   caught up in the our turn still and asking if we won.
-%   maybe there is a call there that is waiting and shouldn't be?
+    Program:
+    	Clue Board Game Advisor
+
+	Authors:
+		Cody Robinson
+		Gurkaran Poonia
+
+	Date:
+		November 25, 2013
+
+******************************/
 
 %=================================================================================================
 % First call to start the Clue Helper 
@@ -299,7 +306,7 @@ did_you_win_interface :- write('\nDid you win?\n(y/n)'),
 % If player wins, then celebrate, otherwise prompts player
 % to enter the card they were shown.
 did_you_win_handler(n) :- input_card_interface.
-did_you_win_handler(y) :- write('Yipee! B-)'),!, false.
+did_you_win_handler(y) :- write('Yipee! B-)').
 did_you_win_handler(_) :- write('Please answer with y or n only. Try again:\n'), did_you_win_interface.
 
 % Prompts player to enter the card they were shown.
@@ -410,20 +417,23 @@ opponent_guess(y) :- write('What was your opponent\'s character guess?\n'),
 					 write('What was their weapon guess? \n'),
 					 read(Guess3),
 					 update_unknown(Guess3),
-					 show_card(Guess, Guess2, Guess3).
+					 show_card(Guess1, Guess2, Guess3).
 
 % Output the card a player should show if they have a card
 show_card(Guess1,_,_):- yourCharacters(Guess1),
-				   				   write('\nIf you are asked, show them this Character: '),
-				                   write(Guess1).
-show_card(_,_,Guess3):- yourWeapons(Guess3),
-				  				   write('\nIf you are asked, show them this Weapon: '),
-				   				   write(Guess3).
+		   				write('\nIf you are asked, show them this Character: '),
+		                write(Guess1).
+
 show_card(_,Guess2,_):- yourRooms(Guess2),
-				   				   write('\nIf you are asked, show them this Room: '),
-				   				   write(Guess2).
+					    write('\nIf you are asked, show them this Room: '),
+						write(Guess2).
+
+show_card(_,_,Guess3):- yourWeapons(Guess3),
+				  		write('\nIf you are asked, show them this Weapon: '),
+				   		write(Guess3).
+
 show_card(_,_,_).
 
 % If the game has ended, display a message and stop the game
 game_over(n).
-game_over(y):- write('\nThat sucks!\nBetter luck next time.\nPlease don\'t blame me.'),!, false.
+game_over(y):- write('\nThat sucks!\nBetter luck next time.\nPlease don\'t blame me.').
