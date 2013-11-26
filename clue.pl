@@ -1,8 +1,6 @@
 % Clue Advisor %
 
 % TODO LIST % 
-% - Added heustric in
-% - Comment code
 % - It seems like if you exit when an opponent wins it is getting
 %   caught up in the our turn still and asking if we won.
 %   maybe there is a call there that is waiting and shouldn't be?
@@ -212,19 +210,28 @@ update_unknown_room(Card) :- unknownRooms(Card,X),
 %------ Our turn ------%
 %=================================================================================================
 
+% Main player turn interface procedure
 my_turn :- write('\nAre you in a room?\n(y/n)'),
            read(InRoom),
            in_room_handler(InRoom).
 
+% Calls the appropriate interface procedure based on
+% whether or not the player is in a room.
 in_room_handler(n) :- closest_room_interface.
 in_room_handler(y) :- which_room_interface. 
 in_room_handler(_) :- write('Please answer with y or n only. Try again:\n'), my_turn.
 
+% Interface procedure to determine which room
+% the player is currently in.
 which_room_interface :- write('\nWhich room? (Ex: hall.) \n'),
                         read(Room),
                         which_room_handler(Room).
 
-which_room_handler(Room) :- knownRooms(Room), already_seen_room_interface.  
+% If Room is already known, then find which room
+% player should go to, otherwise prompt to find out
+% whether or not player can guess from this room.
+which_room_handler(Room) :- knownRooms(Room), already_seen_room_interface.
+
 which_room_handler(Room) :- unknownRooms(Room,_),
 							write('Did you get pulled into this room?\n(y/n.)\n'),
 							read(Pulled),
@@ -237,13 +244,22 @@ pulled_into_room(Room,y) :- retractall(currentRoom(_)),
 							suspect_this.
 pulled_into_room(_,n) 	 :- exit_room_interface.
 
+% Interface procedure to find closest room when we have already
+% seen current room. This procedure initiates a loop that loops
+% until its passed a room that's unknown.
 already_seen_room_interface :- write('\nWe\'ve already seen this room \n'), 
 							   closest_room_interface.
 
+% Interface procedure to determine which room
+% is closest to the player. This gets called
+% in a loop to find closest room.
 closest_room_interface :- write('\nWhat is the closest room?\n'),
                           read(ClosestRoom),
                           closest_room_handler(ClosestRoom).
 
+% This procedure is part of a loop that determines the closest
+% room to the player. When it gets passed an unknown room, it
+% will prompt the user to go there.
 closest_room_handler(ClosestRoom) :- knownRooms(ClosestRoom), loop_next_closest_room_interface.
 
 closest_room_handler(ClosestRoom) :- unknownRooms(ClosestRoom,_), 
@@ -253,33 +269,46 @@ closest_room_handler(ClosestRoom) :- unknownRooms(ClosestRoom,_),
 
 closest_room_handler(_)    :- write('That is not a room bro, Try again:\n'), closest_room_interface.
 
+% Calls the closest_room_handler in a loop to find the closest
+% room to the player.
 loop_next_closest_room_interface :- write('\nWe\'ve already seen this room \nWhat is the next closest room?\n'),
                                     read(ClosestRoom),
                                     closest_room_handler(ClosestRoom).
 
+% Interface procedure that prompts player to go to a room.
 go_to_room_interface :- write('\nGo there... did you make it?\n(y/n)'),
                         read(ToRoom),
                         go_to_room_handler(ToRoom).
 
+% Ends turn if player didn't get to the room in the current
+% turn, otherwise advises player to guess some cards.
 go_to_room_handler(n) :- end_turn_interface.
 go_to_room_handler(y) :- suspect_this.
 go_to_room_handler(_) :- write('Please answer with y or n only. Try again:\n'), go_to_room_interface.
 
+% Initiates the guess/suspect logic and prompts player
+% to determine if we won.
 suspect_this :- the_guess,
                 did_you_win_interface.
 
+% prompts player to determine if we won.
 did_you_win_interface :- write('\nDid you win?\n(y/n)'),
                          read(Win),
                          did_you_win_handler(Win).
 
+% If player wins, then celebrate, otherwise prompts player
+% to enter the card they were shown.
 did_you_win_handler(n) :- input_card_interface.
 did_you_win_handler(y) :- write('Yipee! B-)'),!, false.
 did_you_win_handler(_) :- write('Please answer with y or n only. Try again:\n'), did_you_win_interface.
 
+% Prompts player to enter the card they were shown.
 input_card_interface :- write('\nInput shown card:\n'),
                         read(Card),
                         update_input_card(Card).
 
+% Determines the type of card the player was shown
+% and updates known card appropriately.
 update_input_card(Card) :- character(Card),
 				   	 	   assert(knownCharacters(Card)),
 				     	   retractall(unknownCharacters(Card,_)),
@@ -298,8 +327,12 @@ update_input_card(Card) :- room(Card),
 update_input_card(_) :- write('That\'s not even a card bro... try again:\n'),
                            input_card_interface.
 
+% Tells users that our turn is over and initiates the
+% opponent turn loop.
 end_turn_interface :- write('\nOur turn is over; opponents\' turn now...\n'), opponents_turn.
 
+% Promts user to exit current room but stay close 
+% because we will need to re-enter it in the next turn.
 exit_room_interface :- write('\nExit the room, but stay close!\n'),
                        end_turn_interface.
 
@@ -307,13 +340,14 @@ exit_room_interface :- write('\nExit the room, but stay close!\n'),
 %------ The Guess ------%
 %=================================================================================================
 
-%Print out the guess for the player
+% Print out the guess for the player
 the_guess :- guess_char(X),
 			 guess_room(Y),
 			 guess_weap(Z),
 			 write('\nGuess the following: \n'),
 			 print_guesses(X,Y,Z).
 
+% Helper procedure that prints out guess neatly.
 print_guesses(X,Y,Z) :- write('Character: '), write(X), write('\n'),
 					    write('Room: '),      write(Y), write('\n'),
 					    write('Weapon: '),    write(Z), write('\n').
