@@ -48,23 +48,23 @@ character(peacock).
 character(plum).
 
 % List of all possible weapons
-weapon(donut).
-weapon(glove).
-weapon(necklace).
-weapon(slingshot).
-weapon(rod).
-weapon(saxaphone).
+weapon(candlestick).
+weapon(dagger).
+weapon(pipe).
+weapon(revolver).
+weapon(rope).
+weapon(wrench).
 
 % List of all possible rooms
-room(barney).
-room(krusty).
-room(nuclear).
-room(simpson).
-room(dutchman).
-room(kwik).
-room(burns).
-room(springfield).
-room(dungeon).
+room(kitchen).
+room(ballroom).
+room(conservatory).
+room(diningroom).
+room(billiard).
+room(library).
+room(lounge).
+room(hall).
+room(study).
 
 %=================================================================================================
 % Initalize the game state
@@ -89,23 +89,23 @@ init_characters :- assert(unknownCharacters(scarlett, 0)),
 				   assert(unknownCharacters(plum, 0)).
 
 % Initalize all weapons to unknown 
-init_weapons :- assert(unknownWeapons(donut, 0)),
-				assert(unknownWeapons(glove, 0)),
-				assert(unknownWeapons(necklace, 0)),
-				assert(unknownWeapons(slingshot, 0)),
-				assert(unknownWeapons(rod, 0)),
-				assert(unknownWeapons(saxaphone, 0)).
+init_weapons :- assert(unknownWeapons(candlestick, 0)),
+				assert(unknownWeapons(dagger, 0)),
+				assert(unknownWeapons(pipe, 0)),
+				assert(unknownWeapons(revolver, 0)),
+				assert(unknownWeapons(rope, 0)),
+				assert(unknownWeapons(wrench, 0)).
 
 % Initalize all rooms to unknown
-init_rooms :- assert(unknownRooms(barney, 0)),
-			  assert(unknownRooms(krusty, 0)),
-			  assert(unknownRooms(nuclear, 0)),
-			  assert(unknownRooms(simpson, 0)),
-			  assert(unknownRooms(dutchman, 0)),
-			  assert(unknownRooms(kwik, 0)),
-			  assert(unknownRooms(burns, 0)),
-			  assert(unknownRooms(springfield, 0)),
-			  assert(unknownRooms(dungeon, 0)).
+init_rooms :- assert(unknownRooms(kitchen, 0)),
+			  assert(unknownRooms(ballroom, 0)),
+			  assert(unknownRooms(conservatory, 0)),
+			  assert(unknownRooms(diningroom, 0)),
+			  assert(unknownRooms(billiard, 0)),
+			  assert(unknownRooms(library, 0)),
+			  assert(unknownRooms(lounge, 0)),
+			  assert(unknownRooms(hall, 0)),
+			  assert(unknownRooms(study, 0)).
 
 % Clear the game state
 clear_game_state :- retractall(numPlayers(_)),
@@ -336,7 +336,10 @@ did_you_win_interface :- write('\nDid you win?\n(y/n)'),
 % to enter the card they were shown.
 did_you_win_handler(help) :- help_menu, did_you_win_interface.
 did_you_win_handler(n) 	  :- input_card_interface.
-did_you_win_handler(y) 	  :- write('Yipee! B-)'), nl, play_again.
+did_you_win_handler(y) 	  :- write('Yipee! B-)'), nl, 
+							 write('Do you wish to play again?'),nl, write('(y/n)'),
+				   			 read(Play),!,
+				   			 play_again(Play).
 did_you_win_handler(_) 	  :- write('Please answer with y or n only. Try again:\n'), did_you_win_interface.
 
 % Prompts player to enter the card they were shown.
@@ -474,6 +477,7 @@ game_over(y)	:- write('\nThat sucks!\nBetter luck next time.\nPlease don\'t blam
 				   write('Do you wish to play again?'),nl, write('(y/n)'),
 				   read(Play),!, play_again(Play).
 
+% See if the plaers wants to play again, or close the window
 play_again(y) :- nl,clue.
 play_again(n) :- halt.
 play_again(_) :- write('Wrong choose, please type y. or n.'). 
