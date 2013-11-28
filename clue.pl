@@ -40,20 +40,20 @@ re_enter :- find_turn.
 %=================================================================================================
 
 % List of all possible characters
-character(scarlett).
 character(mustard).
-character(white).
+character(scarlett).
 character(green).
-character(peacock).
+character(white).
 character(plum).
+character(peacock).
 
 % List of all possible weapons
-weapon(candlestick).
 weapon(dagger).
-weapon(pipe).
-weapon(revolver).
+weapon(candlestick).
 weapon(rope).
+weapon(revolver).
 weapon(wrench).
+weapon(pipe).
 
 % List of all possible rooms
 room(kitchen).
@@ -458,17 +458,17 @@ opponent_guess(y) 	 :- write('What was your opponent\'s character guess?\n'),
 % Output the card a player should show if they have a card
 show_card(Guess1,_,_):- yourCharacters(Guess1),
 		   				write('\nIf you are asked, show them this Character: '),
-		                write(Guess1).
+		                write(Guess1), nl.
 
 show_card(_,Guess2,_):- yourRooms(Guess2),
 					    write('\nIf you are asked, show them this Room: '),
-						write(Guess2).
+						write(Guess2), nl.
 
 show_card(_,_,Guess3):- yourWeapons(Guess3),
 				  		write('\nIf you are asked, show them this Weapon: '),
-				   		write(Guess3).
+				   		write(Guess3), nl.
 
-show_card(_,_,_).
+show_card(_,_,_) :- write('You do not have any cards to show'), nl.
 
 % If the game has ended, display a message and stop the game
 game_over(n).
